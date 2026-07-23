@@ -63,6 +63,9 @@ public class GambleEnchant extends AbstractEnchantment implements IAttackEntity 
             Player gamblePlayer = attacker;
             if (RandomUtil.hasSuccessfullyByChance(0.5)) {
                 gamblePlayer = targetPlayer;
+                attacker.sendMessage("§4赌徒 §a你赌赢了!");
+            } else {
+                attacker.sendMessage( "§4赌徒 §c你赌输了!");
             }
             if (gamblePlayer.getHealth() > enchantLevel * 2) {
                 PlayerUtil.damage(attacker,gamblePlayer, PlayerUtil.DamageType.TRUE, enchantLevel * 2,false);

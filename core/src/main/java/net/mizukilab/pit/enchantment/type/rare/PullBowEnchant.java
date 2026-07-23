@@ -26,15 +26,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @Author: EmptyIrony
+ * @Author: EmptyIrony & Sreparcs
  * @Date: 2021/3/6 22:22
+ * @FixDate: 2026/1/31 15:06
+ * 吸力附魔 - 修复NPC吸引问题
  */
-
 @AutoRegister
 @BowOnly
 public class PullBowEnchant extends AbstractEnchantment implements Listener, IPlayerShootEntity, IActionDisplayEnchant {
 
-    private static final HashMap<UUID, Cooldown> cooldown = new HashMap<>();
+
+    private static final HashMap<UUID, Cooldown> COOLDOWN_MAP = new HashMap<>();
+
+    private static final double PULL_RANGE = 2.5D;
+
+    private static final long BASE_COOLDOWN = 8L;
 
     @Override
     public String getEnchantName() {
@@ -70,34 +76,66 @@ public class PullBowEnchant extends AbstractEnchantment implements Listener, IPl
     @Override
     @PlayerOnly
     public void handleShootEntity(int enchantLevel, Player attacker, Entity target, double damage, AtomicDouble finalDamage, AtomicDouble boostDamage, AtomicBoolean cancel) {
-        Player targetEntity = (Player) target;
-        if (cooldown.getOrDefault(attacker.getUniqueId(), new Cooldown(0)).hasExpired()) {
-            Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), () -> {
-                int count = 0;
-                for (Player targetPlayer : PlayerUtil.getNearbyPlayers(target.getLocation(), 2.5D)) {
-                    if (targetPlayer == attacker || ThePit.getInstance().getNpcFactory().hasNPC(targetPlayer)) continue;
-
-                    if (enchantLevel <= 1 && !targetPlayer.getUniqueId().equals(targetEntity.getUniqueId())) {
-                        continue;
-                    }
-                    Vector direction = targetPlayer.getLocation().toVector().subtract(attacker.getLocation().toVector()).normalize();
-                    direction.setX(direction.getX() * -1);
-                    direction.setZ(direction.getZ() * -1);
-                    targetPlayer.setVelocity(direction);
-                    count++;
-                }
-                cooldown.put(attacker.getUniqueId(), new Cooldown(enchantLevel >= 3 ? 8 : 8L * count, TimeUnit.SECONDS));
-            }, 1L);
+        if (!(target instanceof Player)
+                || ThePit.getInstance().getNpcFactory().hasNPC((Player) target)
+                || !attacker.isOnline()) {
+            return;
         }
+
+        Player realPlayerTarget = (Player) target;
+        Cooldown attackerCd = COOLDOWN_MAP.getOrDefault(attacker.getUniqueId(), new Cooldown(0));
+        if (!attackerCd.hasExpired()) {
+            return;
+        }
+
+
+        Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), () -> {
+            if (!attacker.isOnline() || !realPlayerTarget.isOnline()
+                    || ThePit.getInstance().getNpcFactory().hasNPC(attacker)
+                    || ThePit.getInstance().getNpcFactory().hasNPC(realPlayerTarget)) {
+                return;
+            }
+
+            int pulledPlayerCount = 0;
+
+            for (Player nearbyPlayer : PlayerUtil.getNearbyPlayers(target.getLocation(), PULL_RANGE)) {
+
+                if (nearbyPlayer == attacker
+                        || !nearbyPlayer.isOnline()
+                        || ThePit.getInstance().getNpcFactory().hasNPC(nearbyPlayer)) {
+                    continue;
+                }
+
+
+                if (enchantLevel <= 1 && !nearbyPlayer.getUniqueId().equals(realPlayerTarget.getUniqueId())) {
+                    continue;
+                }
+
+
+                Vector pullDirection = attacker.getLocation().toVector()
+                        .subtract(nearbyPlayer.getLocation().toVector())
+                        .normalize();
+                // pullDirection.setY(0.1);
+                nearbyPlayer.setVelocity(pullDirection);
+
+                pulledPlayerCount++; 
+            }
+
+            long finalCdTime = enchantLevel >= 3 ? BASE_COOLDOWN : BASE_COOLDOWN * pulledPlayerCount;
+            COOLDOWN_MAP.put(attacker.getUniqueId(), new Cooldown(finalCdTime, TimeUnit.SECONDS));
+        }, 1L);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        cooldown.remove(e.getPlayer().getUniqueId());
+        COOLDOWN_MAP.remove(e.getPlayer().getUniqueId());
     }
 
     @Override
     public String getText(int level, Player player) {
-        return cooldown.getOrDefault(player.getUniqueId(), new Cooldown(0)).hasExpired() ? "&a&l✔" : "&c&l" + TimeUtil.millisToRoundedTime(cooldown.get(player.getUniqueId()).getRemaining()).replace(" ", "");
+        Cooldown playerCd = COOLDOWN_MAP.getOrDefault(player.getUniqueId(), new Cooldown(0));
+        return playerCd.hasExpired()
+                ? "&a&l✔"
+                : "&c&l" + TimeUtil.millisToRoundedTime(playerCd.getRemaining()).replace(" ", "");
     }
 }

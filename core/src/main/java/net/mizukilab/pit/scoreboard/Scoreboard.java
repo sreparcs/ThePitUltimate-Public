@@ -145,9 +145,10 @@ public class Scoreboard implements AssembleAdapter {
             lines.add("&f经验: &b经验值已满!");
         } else {
             if (!profile.getPlayerOption().isLevelBar() && prestige <= 100) {
-                lines.add("&f下级: &b" + numFormatTwo.format((LevelUtil.getLevelTotalExperience(prestige, level + 1) - profile.getExperience())) + " Xp");
+                long needExp = (long) (LevelUtil.getLevelTotalExperience(prestige, level + 1) - profile.getExperience());
+                lines.add("&f需要经验: &b" + needExp); // 直接拼接long，无任何小数
             } else {
-                lines.add("&f下级: ");
+                lines.add("&f需要经验: ");
                 lines.add("§7[ " + ProgressBar.getProgressBar(profile.getExperience(), LevelUtil.getLevelTotalExperience(prestige, level), LevelUtil.getLevelTotalExperience(prestige, level + 1), 9) + " §7]");
             }
         }
@@ -170,9 +171,9 @@ public class Scoreboard implements AssembleAdapter {
 
         lines.add(" ");
         if (profile.getCoins() >= 10000) {
-            lines.add("&f硬币: &6" + df.format(profile.getCoins()));
+            lines.add("&f硬币: &6" + df.format(profile.getCoins()) + "g");
         } else {
-            lines.add("&f硬币: &6" + numFormatTwo.format(profile.getCoins()));
+            lines.add("&f硬币: &6" + numFormatTwo.format(profile.getCoins()) + "g");
         }
         //if Player is in Fight:
         boolean statusToggle = true;

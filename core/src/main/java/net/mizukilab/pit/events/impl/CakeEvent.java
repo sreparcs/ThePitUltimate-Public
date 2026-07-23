@@ -155,10 +155,10 @@ public class CakeEvent extends AbstractEvent implements INormalEvent, Listener {
                 return;
             }
 
-            if (!canEat(block.getLocation())) {
-                CC.send(MessageType.EVENT, player, "&d&l蛋糕! &c你不能吃里面的蛋糕! 请先吃掉周围的蛋糕!");
-                return;
-            }
+          //  if (!canEat(block.getLocation())) {
+           //     CC.send(MessageType.EVENT, player, "&d&l蛋糕! &c你不能吃里面的蛋糕! 请先吃掉周围的蛋糕!");
+           //     return;
+          //  }
 
             cakePlayerData.cooldown = new Cooldown(100);
 

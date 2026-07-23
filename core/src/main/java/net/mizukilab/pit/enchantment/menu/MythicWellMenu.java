@@ -328,20 +328,28 @@ public class MythicWellMenu extends Menu {
                             return;
                         }
 
-                        //如果之前放了一本，那么退还给玩家
+                        //已经有附魔卷轴了，禁止放入新的，需要先取出现有的(点击菜单中卷轴按钮取出)
+                        //否则会造成: 每次点击都把旧卷轴还给玩家+从背包取1个新卷轴 -> 刷物品BUG
                         if (profile.getEnchantingBook() != null) {
                             ItemStack oldBook = InventoryUtil.deserializeItemStack(profile.getEnchantingBook());
                             if (oldBook != null && oldBook.getType() != Material.AIR) {
-                                if (InventoryUtil.isInvFull(player)) {
-                                    player.sendMessage("&c你的背包已满,无法进行此操作!");
-                                    return;
-                                }
-                                player.getInventory().addItem(oldBook);
+                                player.sendMessage(CC.translate("&c请先取出现有的附魔卷轴后再放入新的!"));
+                                player.playSound(player.getLocation(), Sound.VILLAGER_NO, 1, 1.2F);
+                                return;
                             }
                         }
-                        //放入材料Slot
-                        profile.setEnchantingBook(InventoryUtil.serializeItemStack(event.getCurrentItem()));
-                        event.getClickedInventory().setItem(event.getSlot(), new ItemBuilder(Material.AIR).build());
+
+                        //放入材料Slot - 只取1个，避免堆叠吞道具
+                        ItemStack singleBook = item.clone();
+                        singleBook.setAmount(1);
+                        profile.setEnchantingBook(InventoryUtil.serializeItemStack(singleBook));
+                        //从原物品扣除1个
+                        int afterAmount = item.getAmount() - 1;
+                        if (afterAmount <= 0) {
+                            event.getClickedInventory().setItem(event.getSlot(), null);
+                        } else {
+                            item.setAmount(afterAmount);
+                        }
                         this.openMenu(player);
                         player.playSound(player.getLocation(), Sound.CHICKEN_EGG_POP, 1, 0.9F);
                         return;
@@ -360,20 +368,28 @@ public class MythicWellMenu extends Menu {
                                         if (targetColor.getInternalName().equals(mythicColor)) {
                                             //再检查点击物品颜色是否符合附魔物品
                                             if (color == targetColor) {
-                                                //如果之前放了一条，那么退还给玩家
+                                                //已经有神话之甲了，禁止放入新的，需要先取出现有的(点击菜单中材料按钮取出)
+                                                //否则会造成: 每次点击都把旧材料还给玩家+从背包取1个新材料 -> 刷物品BUG
                                                 if (profile.getEnchantingScience() != null) {
                                                     ItemStack oldSince = InventoryUtil.deserializeItemStack(profile.getEnchantingScience());
                                                     if (oldSince != null && oldSince.getType() != Material.AIR) {
-                                                        if (InventoryUtil.isInvFull(player)) {
-                                                            player.sendMessage("&c你的背包已满,无法进行此操作!");
-                                                            return;
-                                                        }
-                                                        player.getInventory().addItem(oldSince);
+                                                        player.sendMessage(CC.translate("&c请先取出现有的神话之甲后再放入新的!"));
+                                                        player.playSound(player.getLocation(), Sound.VILLAGER_NO, 1, 1.2F);
+                                                        return;
                                                     }
                                                 }
-                                                //放入材料Slot
-                                                profile.setEnchantingScience(InventoryUtil.serializeItemStack(event.getCurrentItem()));
-                                                event.getClickedInventory().setItem(event.getSlot(), new ItemBuilder(Material.AIR).build());
+                                                //放入材料Slot - 每次只取1个，避免堆叠吞道具
+                                                // 克隆并只取1个存入profile
+                                                ItemStack singleLegs = item.clone();
+                                                singleLegs.setAmount(1);
+                                                profile.setEnchantingScience(InventoryUtil.serializeItemStack(singleLegs));
+                                                // 从槽位扣除1个
+                                                int afterAmount = item.getAmount() - 1;
+                                                if (afterAmount <= 0) {
+                                                    event.getClickedInventory().setItem(event.getSlot(), null);
+                                                } else {
+                                                    item.setAmount(afterAmount);
+                                                }
                                                 this.openMenu(player);
                                                 player.playSound(player.getLocation(), Sound.CHICKEN_EGG_POP, 1, 0.9F);
                                                 return;

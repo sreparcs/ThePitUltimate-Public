@@ -27,10 +27,25 @@ import net.mizukilab.pit.enchantment.type.auction.rare.PaparazziEnchant
 import net.mizukilab.pit.enchantment.type.auction.rare.PitMBAEnchant
 import net.mizukilab.pit.enchantment.type.dark_normal.*
 import net.mizukilab.pit.enchantment.type.dark_rare.*
+import net.mizukilab.pit.enchantment.type.dj.BadApple
+import net.mizukilab.pit.enchantment.type.dj.EverybodyDanceNow
+import net.mizukilab.pit.enchantment.type.dj.FlowerDance
+import net.mizukilab.pit.enchantment.type.dj.FugueInDMinor
+import net.mizukilab.pit.enchantment.type.dj.GerudoValley
+import net.mizukilab.pit.enchantment.type.dj.GirlsBandCry
+import net.mizukilab.pit.enchantment.type.dj.ICantWait
+import net.mizukilab.pit.enchantment.type.dj.MortalKombat
+import net.mizukilab.pit.enchantment.type.dj.RainbowTylenol
+import net.mizukilab.pit.enchantment.type.dj.zaijian
 import net.mizukilab.pit.enchantment.type.genesis.*
 import net.mizukilab.pit.enchantment.type.normal.*
 import net.mizukilab.pit.enchantment.type.op.*
 import net.mizukilab.pit.enchantment.type.rage.*
+import net.mizukilab.pit.enchantment.type.ragerare.Angel
+import net.mizukilab.pit.enchantment.type.ragerare.End
+import net.mizukilab.pit.enchantment.type.ragerare.EnergyStorage
+import net.mizukilab.pit.enchantment.type.ragerare.EvasionEnchant
+import net.mizukilab.pit.enchantment.type.ragerare.Plutocrat
 import net.mizukilab.pit.enchantment.type.ragerare.Regularity
 import net.mizukilab.pit.enchantment.type.ragerare.ThinkOfThePeopleEnchant
 import net.mizukilab.pit.enchantment.type.rare.*
@@ -192,6 +207,20 @@ object PitHook {
     }
 
     private fun loadCommands() {
+
+        val plugin = ThePit.getInstance()
+        Bukkit.getPluginCommand("view")?.tabCompleter =
+            org.bukkit.command.TabCompleter { sender, command, alias, args ->
+                if (args.size == 1) {
+                    Bukkit.getOnlinePlayers()
+                        .map { it.name }
+                        .filter { it.startsWith(args[0], ignoreCase = true) }
+                        .toList()
+                } else {
+                    emptyList()
+                }
+            }
+
         LiteBukkitFactory.builder()
             .commands(
                 PitAdminSimpleCommand(),
@@ -326,6 +355,7 @@ object PitHook {
 
 private fun loadEnchants() {
     val enchantmentFactor = ThePit.getInstance().enchantmentFactor
+
     val classes = mutableListOf(
         //addon
         AngelArmsEnchant::class.java,
@@ -336,6 +366,7 @@ private fun loadEnchants() {
         EnduringWillEnchant::class.java,
         ThornsReflectEnchant::class.java,
         ElementalFuryEnchant::class.java,
+        zaijian::class.java,
         BattlefieldMedicEnchant::class.java,
         ThunderArrowEnchant::class.java,
         UndeadArrowEnchant::class.java,
@@ -347,6 +378,7 @@ private fun loadEnchants() {
         MysticRealmEnchant::class.java,
         TheSwiftWindEnchant::class.java,
         SoulEarterEnchant::class.java,
+        ICantWait::class.java,
         PinDownEnchant::class.java,
         PhantomShieldEnchant::class.java,
         KingKillersEnchant::class.java,
@@ -355,6 +387,7 @@ private fun loadEnchants() {
         GrandmasterEnchant::class.java,
         LuckOfPondEnchant::class.java,
         RogueEnchant::class.java,
+        Plutocrat::class.java,
         Regularity::class.java,
         ThinkOfThePeopleEnchant::class.java,
         NewDealEnchant::class.java,
@@ -402,6 +435,8 @@ private fun loadEnchants() {
         CriticallyFunkyEnchant::class.java,
         CriticallyRichEnchant::class.java,
         CrushEnchant::class.java,
+        EnergyStorage::class.java,
+        EvasionEnchant::class.java,
         DavidAndGoliathEnchant::class.java,
         DiamondAllergyEnchant::class.java,
         DiamondBreakerEnchant::class.java,
@@ -432,15 +467,42 @@ private fun loadEnchants() {
         RespawnAbsorptionEnchant::class.java,
         RespawnResistanceEnchant::class.java,
         RustBowEnchant::class.java,
+        Endeavor::class.java,
+        GravityBog::class.java,
+        ListEnchant::class.java,
+        Outnumbered::class.java,
+
+        ProtectResentment::class.java,
+        CriticalEnchant::class.java,
+        DoomPact::class.java,
+        SerpentBlade::class.java,
+        Verdict::class.java,
+        Scurry::class.java,
+        Winter::class.java,
+        SuperPeroxide::class.java,
+        Thorns::class.java,
+        UniversalNature::class.java,
+        WeatherSpector::class.java,
+        DesperationEnchant::class.java,
         SelfCheckoutEnchant::class.java,
         SharkEnchant::class.java,
         SharpnessEnchant::class.java,
         SierraEnchant::class.java,
+        BadApple::class.java,
+        FugueInDMinor::class.java,
+        EverybodyDanceNow::class.java,
         SniperEnchant::class.java,
+        Coward::class.java,
         SpeedyKillEnchant::class.java,
         SprintDrainEnchant::class.java,
         StrikeGoldEnchant::class.java,
+        BowVomit::class.java,
+        FlowerDance::class.java,
+        GerudoValley::class.java,
+        MortalKombat::class.java,
         ThornsEnchant::class.java,
+        GirlsBandCry::class.java,
+        RainbowTylenol::class.java,
         ThumpEnchant::class.java,
         TNTEnchant::class.java,
         TrueDamageArrowEnchant::class.java,
@@ -448,7 +510,6 @@ private fun loadEnchants() {
         WaspEnchant::class.java,
         WisdomEnchant::class.java,
         BlazingAngelEnchant::class.java,
-        BounceBowEnchant::class.java,
         DJBundlePVZ::class.java,
         EchoOfSnowlandPEnchant::class.java,
         EchoOfSnowlandWEnchant::class.java,
@@ -476,6 +537,9 @@ private fun loadEnchants() {
         ExecutionerEnchant::class.java,
         FightOrDieEnchant::class.java,
         GambleEnchant::class.java,
+        BounceBowEnchant::class.java,
+        Angel::class.java,
+
         GomrawsHeartEnchant::class.java,
         HealerEnchant::class.java,
         HealShieldEnchant::class.java,
@@ -486,16 +550,41 @@ private fun loadEnchants() {
         PullBowEnchant::class.java,
         SlimeEnchant::class.java,
         SnowballsEnchant::class.java,
+        BrokenStringEnchant::class.java,
+        AntiAssassinationEnchant::class.java,
+        BloodDonationEnchant::class.java,
         SolitudeEnchant::class.java,
         SpeedyHitEnchant::class.java,
         ThePunchEnchant::class.java,
         VolleyEnchant::class.java,
+        End::class.java,
         SoulRipperEnchant::class.java,
         AceOfSpades::class.java,
         Brakes::class.java,
+        ComboStolen::class.java,
         BreachingChargeEnchant::class.java,
         WitheredAndPiercingThroughTheHeart::class.java,
         TrotEnchant::class.java,
+        ComboLadder::class.java,
+        ComboComa::class.java,
+        ExchangeEnchant::class.java,
+        FantasyEnchant::class.java,
+        FatalTempoEnchant::class.java,
+        JudgmentStrike::class.java,
+        ExplosiveCrossbowEnchant::class.java,
+        Angel::class.java,
+        CoinGloriousEnchant::class.java,
+        LocExchange::class.java,
+        LunarDeity::class.java,
+        MoreWisdomEnchant::class.java,
+        NightMareEnchant::class.java,
+        RadiantShootingEnchant::class.java,
+        RedShark::class.java,
+        RetroGravityMicrocosmEnchant::class.java,
+        SacredArrowEnchant::class.java,
+        ShockerEnchant::class.java,
+        StrangeEnchant::class.java,
+        VitalEchoEnchant::class.java,
 
         //new
         DemonHenEnchant::class.java,
@@ -751,6 +840,7 @@ private fun registerListeners() {
         DataListener::class.java,
         EnderChestListener::class.java,
         ChatListener::class.java,
+        ShopItemListener::class.java,
         PlayerListener::class.java,
         ProtectListener::class.java,
         PantsBundleShopButton::class.java,

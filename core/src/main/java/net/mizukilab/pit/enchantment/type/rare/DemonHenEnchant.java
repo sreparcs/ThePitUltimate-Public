@@ -5,6 +5,7 @@ import cn.charlotte.pit.data.PlayerProfile;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AtomicDouble;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
+import net.citizensnpcs.api.CitizensAPI;
 import net.minecraft.server.v1_8_R3.MathHelper;
 import net.mizukilab.pit.enchantment.AbstractEnchantment;
 import net.mizukilab.pit.enchantment.IActionDisplayEnchant;
@@ -48,10 +49,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DemonHenEnchant extends AbstractEnchantment implements IActionDisplayEnchant, IPlayerShootEntity, Listener, IPlayerKilledEntity {
 
     private static final Map<UUID, Cooldown> cooldown = new ConcurrentHashMap<>();
-    
+
 
     private final Map<UUID, DemonHenData> demonHens = new ConcurrentHashMap<>();
-    
+
 
     private final Set<UUID> explodingPlayers = ConcurrentHashMap.newKeySet();
 
@@ -60,31 +61,28 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
         final LivingEntity henEntity;
         final long spawnTime;
         final double maxHealth;
-        
+
         DemonHenData(UUID ownerUUID, LivingEntity henEntity) {
             this.ownerUUID = ownerUUID;
             this.henEntity = henEntity;
             this.spawnTime = System.currentTimeMillis();
             this.maxHealth = henEntity.getMaxHealth();
         }
-        
-        boolean isExpired() {
 
+        boolean isExpired() {
             return System.currentTimeMillis() - spawnTime > 15000;
         }
-        
-        boolean shouldExplode() {
 
+        boolean shouldExplode() {
             return henEntity.isOnGround() || (henEntity.getHealth() / maxHealth) < 0.5;
         }
-        
+
         boolean isValid() {
             return henEntity != null && henEntity.isValid() && !henEntity.isDead();
         }
     }
 
     public DemonHenEnchant() {
-
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -102,15 +100,15 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
 
     private void manageDemonHens() {
         if (demonHens.isEmpty()) return;
-        
+
         Iterator<Map.Entry<UUID, DemonHenData>> iterator = demonHens.entrySet().iterator();
         List<UUID> toExplode = new ArrayList<>();
-        
+
         while (iterator.hasNext()) {
             Map.Entry<UUID, DemonHenData> entry = iterator.next();
             UUID henId = entry.getKey();
             DemonHenData data = entry.getValue();
-            
+
 
             if (!data.isValid() || data.isExpired()) {
                 if (data.isValid()) {
@@ -119,13 +117,13 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
                 iterator.remove();
                 continue;
             }
-            
+
 
             if (data.shouldExplode()) {
                 toExplode.add(henId);
             }
         }
-        
+
 
         if (!toExplode.isEmpty()) {
             Bukkit.getScheduler().runTask(ThePit.getInstance(), () -> {
@@ -139,34 +137,32 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
     private void explodeDemonHen(UUID henId) {
         DemonHenData data = demonHens.remove(henId);
         if (data == null || !data.isValid()) return;
-        
+
         LivingEntity hen = data.henEntity;
         Location location = hen.getLocation();
         Player owner = Bukkit.getPlayer(data.ownerUUID);
 
         float healthScaled = (float) (hen.getHealth() / hen.getMaxHealth());
         float explosionPower = 1.25F * Math.max(healthScaled, 0.3F);
-        
+
 
         hen.remove();
 
         if (owner != null) {
             explodingPlayers.add(owner.getUniqueId());
         }
-        
-        try {
 
+        try {
             ((CraftWorld) location.getWorld()).getHandle().createExplosion(
-                owner != null ? ((CraftEntity) owner).getHandle() : null,
-                location.getX(), location.getY(), location.getZ(),
-                explosionPower, false, false
+                    owner != null ? ((CraftEntity) owner).getHandle() : null,
+                    location.getX(), location.getY(), location.getZ(),
+                    explosionPower, false, false
             );
-            
+
 
             applyKnockback(location);
-            
-        } finally {
 
+        } finally {
             if (owner != null) {
                 Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), () -> {
                     explodingPlayers.remove(owner.getUniqueId());
@@ -177,25 +173,31 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
 
     private void applyKnockback(Location explosionLocation) {
         Collection<Entity> nearbyEntities = explosionLocation.getWorld().getNearbyEntities(explosionLocation, 3, 3, 3);
-        
+
         for (Entity entity : nearbyEntities) {
-            if (entity instanceof LivingEntity && entity.isValid() && !PlayerProfile.getPlayerProfileByUuid(entity.getUniqueId()).isInArena()) {
-                Vector knockback = entity.getLocation().toVector()
+            // 核心修复：1. 优先过滤所有Citizens插件NPC（无论实体类型）
+            // 2. 过滤插件原生Player型NPC 3. 仅处理真实玩家 4. 保留原有有效/非竞技场判断
+            if (CitizensAPI.getNPCRegistry().isNPC(entity) // 最优先：过滤所有Citizens NPC（关键！）
+                    || !(entity instanceof Player) // 仅处理玩家实体
+                    || ThePit.getInstance().getNpcFactory().hasNPC((Player) entity) // 过滤插件原生Player型NPC
+                    || !entity.isValid()
+                    || PlayerProfile.getPlayerProfileByUuid(entity.getUniqueId()).isInArena()) {
+                continue; // 满足任意过滤条件，直接跳过
+            }
+
+            // 仅对「真实玩家、非插件NPC、非竞技场、有效实体」施加击退
+            Vector knockback = entity.getLocation().toVector()
                     .subtract(explosionLocation.toVector())
                     .normalize()
                     .multiply(1.5)
                     .setY(Math.abs(ThreadLocalRandom.current().nextDouble(0.5, 1.2)));
-                
-                entity.setVelocity(knockback);
-            }
+
+            entity.setVelocity(knockback);
         }
     }
 
     private void cleanupExpiredData() {
-
         cooldown.entrySet().removeIf(entry -> entry.getValue().hasExpired());
-        
-
         explodingPlayers.clear();
     }
 
@@ -239,16 +241,16 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
         if (!cooldown.get(player.getUniqueId()).hasExpired()) {
             return;
         }
-        
+
 
         String internalName = ItemUtil.getInternalName(player.getItemInHand());
         if (!"mythic_bow".equals(internalName)) {
             return;
         }
-        
+
         cooldown.put(player.getUniqueId(), new Cooldown(2, TimeUnit.SECONDS));
         Location targetLocation = entity.getLocation();
-        
+
 
         for (int i = 0; i < level; i++) {
             spawnDemonHen(player, targetLocation);
@@ -300,13 +302,11 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent e) {
-
         demonHens.remove(e.getEntity().getUniqueId());
     }
 
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent e) {
-
         demonHens.entrySet().removeIf(entry -> {
             DemonHenData data = entry.getValue();
             if (data.isValid() && data.henEntity.getLocation().getChunk().equals(e.getChunk())) {
@@ -320,7 +320,6 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
     @EventHandler
     public void onExplosionDamage(EntityDamageEvent e) {
         if (e.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
-
             if (e.getEntity() instanceof Player) {
                 Player player = (Player) e.getEntity();
                 if (explodingPlayers.contains(player.getUniqueId())) {
@@ -332,9 +331,8 @@ public class DemonHenEnchant extends AbstractEnchantment implements IActionDispl
 
     @Override
     public void handlePlayerKilled(int enchantLevel, Player myself, Entity target, AtomicDouble coins, AtomicDouble experience) {
-        if (target.getLastDamageCause() != null && 
-            target.getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
-
+        if (target.getLastDamageCause() != null &&
+                target.getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
             coins.set(coins.get() * 0.2);
             experience.set(experience.get() * 0.2);
         }

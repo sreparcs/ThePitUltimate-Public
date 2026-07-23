@@ -54,12 +54,14 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.metadata.MetadataValue;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
@@ -77,6 +79,7 @@ import static net.mizukilab.pit.util.PublicUtil.processActionBarWithSettingProvi
 
 @AutoRegister
 public class CombatListener implements Listener {
+
 
     ;
     public static CombatListener INSTANCE;
@@ -1403,6 +1406,8 @@ public class CombatListener implements Listener {
         totalCoinsAtomic.set(totalCoins);
         //calculation kill reward - end
     }
+
+
 
     private KillRecap initializationKillRecap(PlayerProfile playerProfile, PlayerProfile killerProfile, Player killer, double totalCoins, double totalXp) {
         KillRecap killRecap = playerProfile.getKillRecap();

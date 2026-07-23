@@ -12,9 +12,11 @@ import dev.rollczi.litecommands.annotations.context.Context
 import dev.rollczi.litecommands.annotations.execute.Execute
 import dev.rollczi.litecommands.annotations.optional.OptionalArg
 import dev.rollczi.litecommands.annotations.permission.Permission
+import dev.rollczi.litecommands.annotations.shortcut.Shortcut
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import net.mizukilab.pit.command.handler.HandHasItem
 import net.mizukilab.pit.config.NewConfiguration
+import net.mizukilab.pit.config.PreviewConfig
 import net.mizukilab.pit.events.impl.AuctionEvent
 import net.mizukilab.pit.item.MythicColor
 import net.mizukilab.pit.item.type.ChunkOfVileItem
@@ -29,7 +31,9 @@ import net.mizukilab.pit.menu.mail.MailMenu
 import net.mizukilab.pit.menu.perk.normal.choose.PerkChooseMenu
 import net.mizukilab.pit.menu.perk.prestige.PrestigePerkBuyMenu
 import net.mizukilab.pit.menu.prestige.PrestigeMainMenu
+import net.mizukilab.pit.menu.preview.PreviewGUI
 import net.mizukilab.pit.menu.quest.main.QuestMenu
+import net.mizukilab.pit.menu.timeshop.ShopItemMenu
 import net.mizukilab.pit.menu.trade.ShowInvBackupButton
 import net.mizukilab.pit.menu.trade.TradeManager
 import net.mizukilab.pit.menu.trade.TradeMenu
@@ -577,6 +581,39 @@ class PitAdminSimpleCommand {
         CDKData.loadAllCDKFromData()
         return "§a已刷新"
     }
+
+    @Execute(name = "shopitem")
+    fun shopItemMenu(@Context player: Player) {
+        ShopItemMenu().openMenu(player)
+    }
+
+    @Execute(name = "additemtopreview")
+    @Permission("pit.admin")
+    fun addItemToPreview(@Context player: Player, @Arg("slot") slot: Int): String {
+        val handItem = player.itemInHand
+        if (handItem == null || handItem.type == Material.AIR) {
+            return CC.translate("&c请手持要添加的物品!")
+        }
+
+        if (slot < 1 || slot > 21) {
+            return CC.translate("&c序号必须在1-21之间!")
+        }
+
+        val saveSuccess = PreviewConfig.saveOrOverwriteItem(slot, handItem)
+
+        return if (saveSuccess) {
+            CC.translate("&a成功将手持物品保存到第 $slot 号位!")
+        } else {
+            CC.translate("&c保存失败!")
+        }
+    }
+
+    @Execute(name = "preview")
+    @Shortcut("pvs")  // 可选：添加快捷命令
+    fun preview(@Context player: Player) {
+        PreviewGUI().openGUI(player)
+    }
+
 
     @Execute(name = "giveBook")
     @Permission("pit.admin")

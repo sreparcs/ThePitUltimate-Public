@@ -472,6 +472,10 @@ public class EnchantButton extends Button {
     private static void end(Player player, IMythicItem mythicItem) {
         PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
         profile.setEnchantingItem(InventoryUtil.serializeItemStack(mythicItem.toItemStack()));
+        // 清理附魔材料：无论是否实际使用了卷轴/神话之甲，只要有残留就必须清空
+        // 否则不消耗卷轴的附魔路径会导致卷轴残留在profile中，下次打开菜单又显示
+        profile.setEnchantingBook(null);
+        profile.setEnchantingScience(InventoryUtil.serializeItemStack(new ItemStack(Material.AIR)));
     }
 
     private boolean levelTier3MythicEnchantLogic(ItemStack item, Player player, IMythicItem mythicItem,int level, List<AbstractEnchantment> rareResults, boolean announcement, List<AbstractEnchantment> results, List<AbstractEnchantment> enchantments, MythicColor color) {

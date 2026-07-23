@@ -85,9 +85,8 @@ class PitCommands {
     @Execute(name = "thepit", aliases = ["天坑", "天坑乱斗", "version", "ver"])
     fun info(@Context player: Player) {
         player.sendMessage("")
-        player.sendMessage(CC.translate("&7Currently running &cThePitUltimate Public."))
-        player.sendMessage(CC.translate("&7Production By &dShanguanLinG, &eAPNF."))
-        player.sendMessage(CC.translate("&b&nhttps://github.com/ShanguanLinG/ThePitUltimate-Public"))
+        player.sendMessage(CC.translate("&7Currently running &cThePitUltimate"))
+        player.sendMessage(CC.translate("&7A version continued and updated by &eSreparcs & 3932816442!"))
         player.sendMessage("")
     }
 
@@ -163,6 +162,14 @@ class PitCommands {
                         return@runTaskAsynchronously
                     }
                 }
+
+                val targetProfile = lookupStrict.profile()
+                if (!player.hasPermission("pit.admin") && !targetProfile.getPlayerOption().isProfileVisibility()) {
+                    player.sendMessage(CC.translate("&c该玩家已隐藏个人档案，无法查看!"))
+                    return@runTaskAsynchronously
+                }
+                // ==================================================
+
                 /*                if (lookupStrict.profile().playerUuid == player.uniqueId) {
                                     player.sendMessage(CC.translate("&c疑? 为什么要查看自己档案?"))
                                     return@runTaskAsynchronously
@@ -1074,7 +1081,6 @@ class PitCommands {
         return "§a成功取消重命名!"
     }
 
-
     @Execute(name = "drop")
     fun mythicDrop(@Context player: Player): String {
         val profile = ThePit.getInstance().profileOperator.namedIOperator(player.name).profile()
@@ -1088,7 +1094,7 @@ class PitCommands {
         val stateMessage = if (profile.isNotMythDrop) "&c否" else "&a是"
         return "§7切换掉落状态为: $stateMessage"
     }
-    /*
+
             @Execute(name = "nick")
             @Permission("pit.nick")
             fun nick(@Context player: Player,@Arg("name") name: String) {
@@ -1107,7 +1113,7 @@ class PitCommands {
                 profile.isNicked = false
                 profile.nickName = player.name
                 player.sendMessage(CC.translate("&c成功取消Nick"))
-            }*/
+            }
 
 
     @Execute(name = "python")

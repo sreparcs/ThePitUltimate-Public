@@ -5,13 +5,13 @@ plugins {
     id("io.freefair.lombok") version "8.10"
     id("java-library")
     id("java")
-    id("org.jetbrains.dokka") version "1.9.20" // 请根据需要调整版本号
+    id("org.jetbrains.dokka") version "1.9.20"
     kotlin("jvm") version "2.1.20"
     alias(libs.plugins.shadow)
 }
 
 group = "me.huanmeng"
-version = /*UUID.randomUUID().toString().substring(0,4);*/"4.4.9"
+version = /*UUID.randomUUID().toString().substring(0,4);*/"4.5.0"
 repositories {
     maven("https://maven.cleanroommc.com")
     maven("https://maven.aliyun.com/repository/public/")

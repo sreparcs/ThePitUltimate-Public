@@ -61,7 +61,7 @@ public class EnchantmentFactor {
                     AbstractEnchantment enchantment = (AbstractEnchantment) clazz.getConstructor().newInstance();
                     registerEnchantment(enchantment);
                 } catch (Exception e) {
-                    log.error("{} exception on install enchantments.", String.valueOf(e));
+                    log.error("Failed to load enchantment class: {}", clazz.getName(), e);
                 }
             }
         }

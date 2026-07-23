@@ -17,10 +17,12 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.mizukilab.pit.PitHook
 import net.mizukilab.pit.command.handler.HandHasItem
+import net.mizukilab.pit.config.PreviewConfig
 import net.mizukilab.pit.events.impl.QuickMathEvent
 import net.mizukilab.pit.item.AbstractPitItem
 import net.mizukilab.pit.item.MythicColor
 import net.mizukilab.pit.medal.impl.challenge.hidden.KaboomMedal
+import net.mizukilab.pit.menu.preview.PreviewGUI
 import net.mizukilab.pit.runnable.RebootRunnable.RebootTask
 import net.mizukilab.pit.sendMessage
 import net.mizukilab.pit.util.Log
@@ -719,26 +721,26 @@ class PitAdminCommands {
 
         ThePit.api.openTradeTrackMenu(player, profile, data)
     }
-
     @Execute(name = "change")
     fun change(
         @Context player: Player,
         @Arg("target") target: Player,
         @Arg("type") type: String,
-        @Arg("value") amount: Int,
+        @Arg("value") amount: Long,
         @Flag("save") save: Boolean
     ) {
         val profile = PlayerProfile.getPlayerProfileByUuid(target.uniqueId)
+
         if ("coin".equals(type, ignoreCase = true)) {
             profile.coins = amount.toDouble()
             player.sendMessage("§a已修改玩家硬币")
         }
         if ("prestige".equals(type, ignoreCase = true)) {
-            profile.setPrestige(amount)
+            profile.setPrestige(amount.toInt())
             player.sendMessage("§a已修改玩家精通")
         }
         if ("renown".equals(type, ignoreCase = true)) {
-            profile.setRenown(amount)
+            profile.setRenown(amount.toInt())
             player.sendMessage("§a已修改玩家声望")
         }
         if ("streak".equals(type, ignoreCase = true)) {
@@ -746,17 +748,17 @@ class PitAdminCommands {
             player.sendMessage("§a已修改玩家连杀")
         }
         if ("abounty".equals(type, ignoreCase = true)) {
-            profile.setActionBounty(amount)
+            profile.setActionBounty(amount.toInt())
             player.sendMessage("§a已修改玩家行动赏金")
         }
         if ("level".equals(type, ignoreCase = true)) {
-            val levelExpRequired = LevelUtil.getLevelTotalExperience(profile.getPrestige(), amount)
+            val levelExpRequired = LevelUtil.getLevelTotalExperience(profile.getPrestige(), amount.toInt()) // 修复
             profile.experience = levelExpRequired
             profile.applyExperienceToPlayer(player)
             player.sendMessage("§a已修改玩家等级")
         }
         if ("bounty".equals(type, ignoreCase = true)) {
-            profile.setBounty(amount)
+            profile.setBounty(amount.toInt())
             player.sendMessage("§a已修改玩家赏金")
         }
         if ("maxhealth".equals(type, ignoreCase = true)) {
@@ -768,6 +770,7 @@ class PitAdminCommands {
             player.sendMessage("§a已保存玩家数据")
         }
     }
+
 
     @Execute(name = "internalName")
     fun internalName(@Context player: Player, @Arg("name") internalName: String) {

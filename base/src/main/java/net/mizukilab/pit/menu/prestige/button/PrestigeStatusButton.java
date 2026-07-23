@@ -124,7 +124,7 @@ public class PrestigeStatusButton extends Button {
                     } else {
                         new PrestigeMainMenu().openMenu(player);
                     }
-                }, true, isNot ? 1 : 5, (Button) null).openMenu(player);
+                }, true, isNot ? 1 : 3, (Button) null).openMenu(player);
             }
         }
     }

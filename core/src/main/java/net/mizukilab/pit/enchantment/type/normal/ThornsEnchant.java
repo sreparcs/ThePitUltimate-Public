@@ -1,14 +1,17 @@
 package net.mizukilab.pit.enchantment.type.normal;
 
+import cn.charlotte.pit.ThePit;
 import net.mizukilab.pit.enchantment.AbstractEnchantment;
 import net.mizukilab.pit.enchantment.param.item.ArmorOnly;
 import net.mizukilab.pit.enchantment.rarity.EnchantmentRarity;
+import net.mizukilab.pit.parm.AutoRegister;
 import net.mizukilab.pit.parm.listener.IPlayerDamaged;
 import net.mizukilab.pit.util.cooldown.Cooldown;
 import com.google.common.util.concurrent.AtomicDouble;
 import nya.Skip;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -16,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @Author: Misoryan
  * @Created_In: 2021/1/17 21:30
  */
-@Skip
+@AutoRegister
 @ArmorOnly
 public class ThornsEnchant extends AbstractEnchantment implements IPlayerDamaged {
 
@@ -52,8 +55,26 @@ public class ThornsEnchant extends AbstractEnchantment implements IPlayerDamaged
 
     @Override
     public void handlePlayerDamaged(int enchantLevel, Player myself, Entity attacker, double damage, AtomicDouble finalDamage, AtomicDouble boostDamage, AtomicBoolean cancel) {
+        // 核心修复：1.判断攻击者是真实玩家 2.排除NPC 3.玩家在线判断 避免空指针/强转异常
+        if (!(attacker instanceof Player)
+                || ThePit.getInstance().getNpcFactory().hasNPC((Player) attacker)
+                || !((Player) attacker).isOnline()) {
+            return;
+        }
+
+        // 生命值低于25%才触发
         if (myself.getHealth() / myself.getMaxHealth() <= 0.25) {
-            ((Player) attacker).damage((0.5F * (enchantLevel + 1)) * 2, myself);
+            Player realAttacker = (Player) attacker;
+            // 原逻辑的反伤（保持原有伤害计算）
+            realAttacker.damage((0.5F * (enchantLevel + 1)) * 2, myself);
+
+            // 补上附魔描述中承诺的击退效果（原代码缺失，此处补充）
+            Vector knockback = realAttacker.getLocation().toVector()
+                    .subtract(myself.getLocation().toVector())
+                    .normalize()
+                    .multiply(1.2)
+                    .setY(0.3);
+            realAttacker.setVelocity(knockback);
         }
     }
 }

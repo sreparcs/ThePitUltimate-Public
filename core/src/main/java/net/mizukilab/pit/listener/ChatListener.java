@@ -16,6 +16,7 @@ import nya.Skip;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -97,6 +98,7 @@ public class ChatListener implements Listener {
             }
         }
     }
+
 
     private static boolean processChatCooldown(AsyncPlayerChatEvent event, Player player) {
         if (!cooldown.getOrDefault(player.getUniqueId(), new Cooldown(0)).hasExpired() && !PlayerUtil.isStaff(player)) {

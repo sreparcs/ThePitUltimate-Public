@@ -119,9 +119,6 @@ public class PlayerListener implements Listener {
         ((ProfileOperator) ThePit.getInstance().getProfileOperator())
                 .operatorStrict(event.getPlayer()).ifPresent(profileOper -> {
                     PlayerProfile profile = profileOper.profile();
-                    if(isSaving(profileOper)){
-                        return;
-                    }
                     //synchronize
                     PlayerInv playerInv = PlayerInv.fromPlayerInventory(event.getPlayer().getInventory());
                     profile.disallow();
@@ -242,7 +239,10 @@ public class PlayerListener implements Listener {
 
     private static void postSynchronize(PlayerProfile profile, Player player) {
         PlayerInv playerInv = profile.getInventory();
-        playerInv.applyItemToPlayer(player);
+        // 防止 inventory 为 null 时应用空背包
+        if (playerInv != null) {
+            playerInv.applyItemToPlayer(player);
+        }
         InventoryUtil.supplyItems(player);
         profile.setLastLogoutTime(System.currentTimeMillis());
         profile.applyExperienceToPlayer(player);

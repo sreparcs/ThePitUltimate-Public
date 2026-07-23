@@ -1,7 +1,9 @@
 package net.mizukilab.pit.enchantment.type.rare
 
+import cn.charlotte.pit.ThePit
 import cn.charlotte.pit.data.PlayerProfile
 import com.google.common.util.concurrent.AtomicDouble
+import net.citizensnpcs.api.CitizensAPI
 import net.mizukilab.pit.enchantment.AbstractEnchantment
 import net.mizukilab.pit.enchantment.IActionDisplayEnchant
 import net.mizukilab.pit.enchantment.param.event.PlayerOnly
@@ -29,12 +31,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  * @Author: Misoryan
  * @Created_In: 2021/1/17 18:35
  */
-
 @WeaponOnly
 @Skip
-class ComboStrikeEnchant : AbstractEnchantment(), IAttackEntity, IPlayerShootEntity,
-    IActionDisplayEnchant {
+class ComboStrikeEnchant : AbstractEnchantment(), IAttackEntity, IPlayerShootEntity, IActionDisplayEnchant {
     private val numFormat = DecimalFormat("0.0")
+
     override fun getEnchantName(): String {
         return "强力击: 闪电"
     }
@@ -72,6 +73,9 @@ class ComboStrikeEnchant : AbstractEnchantment(), IAttackEntity, IPlayerShootEnt
         boostDamage: AtomicDouble,
         cancel: AtomicBoolean
     ) {
+
+        if (!isRealPlayer(target)) return
+
         val victim = target as Player
         if (attacker.itemInHand.type != MythicSwordItem().itemDisplayMaterial) {
             return
@@ -85,9 +89,10 @@ class ComboStrikeEnchant : AbstractEnchantment(), IAttackEntity, IPlayerShootEnt
                 return
             }
         }
+
         if (PlayerProfile.getPlayerProfileByUuid(attacker.uniqueId).meleeHit % (if (enchantLevel > 1) 4 else 5) == 0) {
             finalDamage.set(finalDamage.get() + 2 * getDamage(enchantLevel))
-            PlayerUtil.playThunderEffect(target.getLocation())
+            PlayerUtil.playThunderEffect(target.location)
             val victimProfile = PlayerProfile.getPlayerProfileByUuid(victim.uniqueId)
             CC.send(MessageType.MISC, attacker, "&b&l闪电! &7你的闪电击中了 " + victimProfile.formattedName + " &7!")
             if (enchantLevel >= 3) {
@@ -113,6 +118,9 @@ class ComboStrikeEnchant : AbstractEnchantment(), IAttackEntity, IPlayerShootEnt
         boostDamage: AtomicDouble,
         cancel: AtomicBoolean
     ) {
+
+        if (!isRealPlayer(target)) return
+
         val victim = target as Player
         if (attacker.itemInHand.type != MythicBowItem().itemDisplayMaterial) {
             return
@@ -126,9 +134,11 @@ class ComboStrikeEnchant : AbstractEnchantment(), IAttackEntity, IPlayerShootEnt
                 return
             }
         }
-        if (PlayerProfile.getPlayerProfileByUuid(attacker.uniqueId).meleeHit % (if (enchantLevel > 1) 4 else 5) == 0) {
+
+        val attackerProfile = PlayerProfile.getPlayerProfileByUuid(attacker.uniqueId)
+        if (attackerProfile.bowHit % (if (enchantLevel > 1) 4 else 5) == 0) {
             finalDamage.set(finalDamage.get() + 2 * getDamage(enchantLevel))
-            PlayerUtil.playThunderEffect(target.getLocation())
+            PlayerUtil.playThunderEffect(target.location)
             val victimProfile = PlayerProfile.getPlayerProfileByUuid(victim.uniqueId)
             CC.send(MessageType.MISC, attacker, "&b&l闪电! &7你的闪电击中了 " + victimProfile.formattedName + " &7!")
             if (enchantLevel >= 3) {
@@ -151,8 +161,17 @@ class ComboStrikeEnchant : AbstractEnchantment(), IAttackEntity, IPlayerShootEnt
         return if (hit % (if (level > 1) 4 else 5) == 0) "&a&l✔" else "&e&l" + ((if (level > 1) 4 else 5) - hit % if (level > 1) 4 else 5)
     }
 
+
+    private fun isRealPlayer(entity: Entity): Boolean {
+        if (entity !is Player) return false
+        if (CitizensAPI.getNPCRegistry().isNPC(entity)) return false
+        if (ThePit.getInstance().npcFactory.hasNPC(entity)) return false
+        return true
+    }
+
     companion object {
         private val thinkOfThePeople = ThinkOfThePeopleEnchant()
+
         fun getDamage(enchantLevel: Int): Double {
             return when (enchantLevel) {
                 1 -> 1.5

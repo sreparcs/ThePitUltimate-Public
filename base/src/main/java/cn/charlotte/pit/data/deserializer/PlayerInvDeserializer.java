@@ -24,10 +24,16 @@ public class PlayerInvDeserializer extends JsonDeserializer<PlayerInv> {
             JsonNode node = p.getCodec().readTree(p);
             String inv = node.get("inv").asText();
 
-            return this.refreshInv(InventoryUtil.playerInventoryFromString(inv));
+            PlayerInv parsedInv = InventoryUtil.playerInventoryFromString(inv);
+            if (parsedInv == null) {
+                // 如果解析失败，返回默认空背包而不是 null
+                return new PlayerInv();
+            }
+            return this.refreshInv(parsedInv);
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            // 返回默认空背包而不是 null，防止后续 NPE
+            return new PlayerInv();
         }
     }
 
