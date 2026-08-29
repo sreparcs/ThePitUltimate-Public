@@ -1,0 +1,6 @@
+Name: ThePitUltimate
+Version: 4.5.0
+EntryClass: cn.charlotte.pit.Loader
+EntryPoint: begin
+InfPort: false
+
