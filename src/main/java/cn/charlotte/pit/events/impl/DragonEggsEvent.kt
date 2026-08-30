@@ -19,14 +19,24 @@ import org.bukkit.event.player.PlayerInteractEvent
 import java.util.*
 
 class DragonEggsEvent : AbstractEvent(), INormalEvent, Listener {
+    @Volatile
     private var eggLocation: Location? = null
     private var clicks: Int = 0
     private var firstHologram: Hologram? = null
     private var secondHologram: Hologram? = null
-    private var isActive = false
-    private var isClick = false
+
+    @Volatile
+    private var running = false
+
+    @Volatile
+    private var clickable = false
+
+    @Volatile
     private var hologramsReady = false
-    private var lastEggLocation: Location? = null
+
+    @Volatile
+    private var generation = 0
+    private val placedEggs = HashSet<Location>()
 
     companion object {
         private const val MAX_CLICKS = 230
@@ -49,75 +59,77 @@ class DragonEggsEvent : AbstractEvent(), INormalEvent, Listener {
         HandlerList.unregisterAll(this)
     }
 
-    private fun removeOldEgg() {
-        lastEggLocation?.let { lastLoc ->
+    private fun clearPlacedEggs() {
+        if (placedEggs.isEmpty()) {
+            return
+        }
+        for (location in placedEggs) {
             try {
-                if (lastLoc.world != null && lastLoc.block.type == Material.DRAGON_EGG) {
-                    lastLoc.block.type = Material.AIR
+                val world = location.world ?: continue
+                val block = world.getBlockAt(location)
+                if (block.type == Material.DRAGON_EGG) {
+                    block.type = Material.AIR
                 }
             } catch (e: Exception) {
                 Bukkit.getLogger().warning("清理旧龙蛋失败: ${e.message}")
             }
         }
-        eggLocation?.let { currentLoc ->
-            if (currentLoc != lastEggLocation && currentLoc.world != null && currentLoc.block.type == Material.DRAGON_EGG) {
-                currentLoc.block.type = Material.AIR
-            }
-        }
-    }
-
-    private fun prepareNewLocation() {
-        despawnHolograms()
-        removeOldEgg()
-        hologramsReady = false
-    }
-
-    private fun calculateOffset(origin: Location, random: Random): Int {
-        return random.nextInt(31) - SEARCH_RADIUS
+        placedEggs.clear()
     }
 
     override fun onActive() {
-        eggLocation = ThePit.getInstance().pitConfig.dragonEggLoc ?: run {
+        val origin = ThePit.getInstance().pitConfig.dragonEggLoc ?: run {
             Bukkit.broadcastMessage(CC.translate("&5&l龙蛋！ &7活动区域未设置，请联系管理员设置！"))
-            ThePit.getInstance().getEventFactory().inactiveEvent(this)
+            deactivateLater()
             return
         }
-        lastEggLocation = null
-        isActive = true
-        isClick = false
+        generation++
+        running = true
+        clickable = false
         hologramsReady = false
+        clicks = 0
         registerEvents()
         CC.boardCast(CC.translate("&5&l龙蛋！ &d龙蛋已在中心点位刷新,请前往点击！"))
-        setEggLocation(eggLocation!!)
+        moveEggTo(origin.clone())
         playSoundToOnlinePlayers(Sound.ENDERDRAGON_GROWL, 1.5f, 1.5f)
     }
 
-    private fun setEggLocation(location: Location) {
-        Bukkit.getScheduler().runTask(ThePit.getInstance()) {
-            prepareNewLocation()
-            lastEggLocation = eggLocation
-            eggLocation = location
+    private fun moveEggTo(location: Location) {
+        val expected = generation
+        runOnMainThread {
+            if (expected != generation || !running) {
+                return@runOnMainThread
+            }
 
-            if (location.world != null) {
-                location.block.type = Material.DRAGON_EGG
-                reCreateHologram(location)
-                hologramsReady = true
-                isClick = true
-            } else {
+            clearPlacedEggs()
+            despawnHolograms()
+
+            val world = location.world
+            if (world == null) {
                 Bukkit.getLogger().warning("龙蛋位置无效，世界为空！")
                 hologramsReady = false
-                isClick = false
+                clickable = false
+                return@runOnMainThread
             }
+
+            val block = world.getBlockAt(location)
+            block.type = Material.DRAGON_EGG
+            placedEggs.add(block.location)
+            eggLocation = block.location
+            reCreateHologram(block.location)
+            hologramsReady = true
+            clickable = true
         }
     }
 
     @EventHandler
     fun onInteract(event: PlayerInteractEvent) {
-        if (!isActive ||
-            !isClick ||
-            !hologramsReady ||
-            eggLocation != event.clickedBlock?.location ||
-            event.clickedBlock?.type != Material.DRAGON_EGG) {
+        if (!running || !clickable || !hologramsReady) {
+            return
+        }
+
+        val block = event.clickedBlock ?: return
+        if (block.type != Material.DRAGON_EGG || block.location != eggLocation) {
             return
         }
 
@@ -150,17 +162,17 @@ class DragonEggsEvent : AbstractEvent(), INormalEvent, Listener {
 
     private fun handleClickEvents() {
         if (clicks >= MAX_CLICKS) {
-            ThePit.getInstance().getEventFactory().inactiveEvent(this)
-        } else if (clicks % CLICK_THRESHOLD == 0 || (clicks + 1) % CLICK_THRESHOLD == 0) {
-            isClick = false
+            deactivateLater()
+        } else if (clicks % CLICK_THRESHOLD == 0) {
+            clickable = false
             hologramsReady = false
             setNewLocation()
         }
     }
 
     private fun setNewLocation() {
-        prepareNewLocation()
-        eggLocation?.let { setEggLocation(findRandomLocation(it)) }
+        val current = eggLocation ?: return
+        moveEggTo(findRandomLocation(current))
         CC.boardCast("&5&l龙蛋！ &7龙蛋已被移动到了新的位置！")
         playSoundToOnlinePlayers(Sound.ENDERDRAGON_HIT, 1.5f, 1.5f)
     }
@@ -175,8 +187,8 @@ class DragonEggsEvent : AbstractEvent(), INormalEvent, Listener {
         despawnHolograms()
 
         try {
-            val hologramLoc1 = location.block.location.clone().add(0.5, 2.4, 0.5)
-            val hologramLoc2 = location.block.location.clone().add(0.5, 2.0, 0.5)
+            val hologramLoc1 = location.clone().add(0.5, 2.4, 0.5)
+            val hologramLoc2 = location.clone().add(0.5, 2.0, 0.5)
 
             firstHologram = HologramAPI.createHologram(hologramLoc1, "§a$clicks")
             secondHologram = HologramAPI.createHologram(hologramLoc2, "§e§l点击")
@@ -225,45 +237,57 @@ class DragonEggsEvent : AbstractEvent(), INormalEvent, Listener {
     }
 
     override fun onInactive() {
-        Bukkit.getScheduler().runTask(ThePit.getInstance()) {
-            isActive = false
-            isClick = false
-            hologramsReady = false
-            unregisterEvents()
-            cleanup()
-            playSoundToOnlinePlayers(Sound.ENDERDRAGON_DEATH, 1.5f, 1.5f)
-            CC.boardCast(CC.translate("&5&l龙蛋！ &7活动已结束！"))
+        generation++
+        running = false
+        clickable = false
+        hologramsReady = false
+        unregisterEvents()
+        runOnMainThread { cleanup() }
+        playSoundToOnlinePlayers(Sound.ENDERDRAGON_DEATH, 1.5f, 1.5f)
+        CC.boardCast(CC.translate("&5&l龙蛋！ &7活动已结束！"))
+    }
+
+    private fun deactivateLater() {
+        val plugin = ThePit.getInstance()
+        if (!plugin.isEnabled) {
+            return
         }
+        Bukkit.getScheduler().runTask(plugin, Runnable { plugin.eventFactory.inactiveEvent(this) })
+    }
+
+    private fun runOnMainThread(action: () -> Unit) {
+        if (Bukkit.isPrimaryThread() || !ThePit.getInstance().isEnabled) {
+            action()
+            return
+        }
+        Bukkit.getScheduler().runTask(ThePit.getInstance(), Runnable { action() })
     }
 
     private fun cleanup() {
-        eggLocation?.block?.type = Material.AIR
-        removeOldEgg()
+        clearPlacedEggs()
         despawnHolograms()
-        isActive = false
-        eggLocation = null
-        lastEggLocation = null
-        clicks = 0
-        isClick = false
+        running = false
+        clickable = false
         hologramsReady = false
+        eggLocation = null
+        clicks = 0
     }
 
     private fun findRandomLocation(origin: Location): Location {
         val random = Random()
-        var newLocation: Location
-        var attempts = 0
+        val world = origin.world ?: return origin
 
-        while (true) {
-            val x = origin.x + calculateOffset(origin, random)
-            val z = origin.z + calculateOffset(origin, random)
-            newLocation = Location(origin.world, x, origin.y, z)
-
-            if (newLocation.block.type == Material.AIR || attempts >= MAX_ATTEMPTS) {
-                break
+        repeat(MAX_ATTEMPTS) {
+            val x = origin.x + randomOffset(random)
+            val z = origin.z + randomOffset(random)
+            val candidate = Location(world, x, origin.y, z)
+            if (candidate.block.type == Material.AIR) {
+                return candidate
             }
-            attempts++
         }
 
-        return newLocation
+        return origin
     }
+
+    private fun randomOffset(random: Random): Int = random.nextInt(31) - SEARCH_RADIUS
 }

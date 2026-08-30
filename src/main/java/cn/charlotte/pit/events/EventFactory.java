@@ -111,6 +111,8 @@ public class EventFactory {
     }
 
     public void activeEvent(INormalEvent event) {
+        forceInactiveNormalEvent(event);
+
         AbstractEvent iEvent = (AbstractEvent) event;
         iEvent.onActive();
         iEvent.setActive(true);
@@ -163,6 +165,22 @@ public class EventFactory {
                 tick++;
             }
         }.runTaskTimerAsynchronously(ThePit.getInstance(), 10, 10);
+    }
+
+    private void forceInactiveNormalEvent(INormalEvent incoming) {
+        final INormalEvent previous = this.activeNormalEvent;
+        if (previous == null || previous == incoming) {
+            return;
+        }
+
+        this.activeNormalEvent = null;
+        final AbstractEvent previousEvent = (AbstractEvent) previous;
+        previousEvent.setActive(false);
+        try {
+            previousEvent.onInactive();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 
     public void inactiveEvent(INormalEvent event) {
@@ -231,6 +249,8 @@ public class EventFactory {
     }
 
     public void activeEvent(IEpicEvent event) {
+        forceInactiveNormalEvent(null);
+
         AbstractEvent iEvent = (AbstractEvent) event;
         iEvent.onActive();
         iEvent.setActive(true);

@@ -320,8 +320,30 @@ public class ThePit extends JavaPlugin implements PluginMessageListener, PluginP
         Bukkit.getConsoleSender().sendMessage(s);
     }
 
+    private void shutdownActiveEvents() {
+        final EventFactory factory = this.eventFactory;
+        if (factory == null) {
+            return;
+        }
+        try {
+            if (factory.getActiveEpicEvent() != null) {
+                factory.inactiveEvent(factory.getActiveEpicEvent());
+            }
+        } catch (Throwable e) {
+            System.err.println("Failed to shutdown active epic event: " + e.getMessage());
+        }
+        try {
+            if (factory.getActiveNormalEvent() != null) {
+                factory.inactiveEvent(factory.getActiveNormalEvent());
+            }
+        } catch (Throwable e) {
+            System.err.println("Failed to shutdown active normal event: " + e.getMessage());
+        }
+    }
+
     @Override
     public void onDisable() {
+        shutdownActiveEvents();
         PacketHologramRunnable.deSpawnAll();
         synchronized (Bukkit.getOnlinePlayers()) {
             CC.boardCast0("&6&l公告! &7正在执行关闭服务器...");
