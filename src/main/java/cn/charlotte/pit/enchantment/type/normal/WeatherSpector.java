@@ -8,8 +8,6 @@ import cn.charlotte.pit.parm.listener.IAttackEntity;
 import cn.charlotte.pit.parm.listener.IPlayerDamaged;
 import cn.charlotte.pit.parm.listener.IPlayerShootEntity;
 import cn.charlotte.pit.util.cooldown.Cooldown;
-import org.bukkit.Bukkit;
-import org.bukkit.Server;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import cn.charlotte.pit.register.IMagicLicense;
@@ -19,9 +17,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @ArmorOnly
 public class WeatherSpector extends AbstractEnchantment implements IAttackEntity, IPlayerDamaged, IPlayerShootEntity, IMagicLicense {
 
-    private boolean day() {
-        Server server = Bukkit.getServer();
-        long time = server.getWorld("world").getTime();
+    private boolean isDaytime(Player player) {
+        if (player == null || player.getWorld() == null) {
+            return false;
+        }
+
+        long time = player.getWorld().getTime();
         return time > 0L && time < 12300L;
     }
 
@@ -57,21 +58,21 @@ public class WeatherSpector extends AbstractEnchantment implements IAttackEntity
 
     @Override
     public void handleAttackEntity(int i, Player player, Entity entity, double v, AtomicDouble atomicDouble, AtomicDouble atomicDouble1, AtomicBoolean atomicBoolean) {
-        if (this.day()) {
+        if (this.isDaytime(player)) {
             atomicDouble1.getAndAdd(0.04 * (double)i);
         }
     }
 
     @Override
     public void handleShootEntity(int i, Player player, Entity entity, double v, AtomicDouble atomicDouble, AtomicDouble atomicDouble1, AtomicBoolean atomicBoolean) {
-        if (this.day()) {
+        if (this.isDaytime(player)) {
             atomicDouble1.getAndAdd(0.04 * (double)i);
         }
     }
 
     @Override
     public void handlePlayerDamaged(int i, Player player, Entity entity, double v, AtomicDouble atomicDouble, AtomicDouble atomicDouble1, AtomicBoolean atomicBoolean) {
-        if (!this.day()) {
+        if (!this.isDaytime(player)) {
             atomicDouble1.getAndAdd(-0.04 * (double)i);
         }
     }
