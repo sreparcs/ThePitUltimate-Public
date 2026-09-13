@@ -159,6 +159,12 @@ public class GameEffectListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL,ignoreCancelled = true)
     public void onPlayerDamagePlayer(EntityDamageByEntityEvent event) {
+        if (event.getEntity() instanceof Player && PlayerUtil.isNPC(event.getEntity())) {
+            return;
+        }
+        if (event.getDamager() instanceof Player && PlayerUtil.isNPC(event.getDamager())) {
+            return;
+        }
         if (event.getDamager() instanceof Player attacker) {
             if (NewConfiguration.INSTANCE.getRepairFeatures())  {
                 if (event.getEntity() instanceof CraftLivingEntity livingEntity) { //特性修复 //TODO
